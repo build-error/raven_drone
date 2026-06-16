@@ -6,6 +6,7 @@
 #include <Eigen/Eigen>
 
 #include <rclcpp/rclcpp.hpp>
+#include <geometry_msgs/msg/twist.hpp>
 
 using namespace std::chrono_literals; // NOLINT
 
@@ -17,8 +18,16 @@ class TeleopMode : public px4_ros2::ModeBase
     explicit TeleopMode(rclcpp::Node & node)
     : ModeBase(node, Settings{kName}.preventArming(false))
     {
-        _trajectory_setpoint =
-        std::make_shared<px4_ros2::TrajectorySetpointType>(*this);
+        _trajectory_setpoint = std::make_shared<px4_ros2::TrajectorySetpointType>(*this);
+        
+        _cmd_vel_sub =
+        node.create_subscription<geometry_msgs::msg::Twist>(
+            "/cmd_vel",
+            10,
+            [this](const geometry_msgs::msg::Twist::SharedPtr msg)
+            {
+                _last_cmd_vel = *msg;
+            });
     }
 
     void onActivate() override {}
@@ -29,28 +38,37 @@ class TeleopMode : public px4_ros2::ModeBase
     {
         (void)dt_s;
 
+        const Eigen::Vector3f velocity_sp{
+            static_cast<float>(_last_cmd_vel.linear.x),
+            static_cast<float>(_last_cmd_vel.linear.y),
+            static_cast<float>(_last_cmd_vel.linear.z)
+        };
+
+        const float yaw_rate =
+            static_cast<float>(_last_cmd_vel.angular.z);
+
         RCLCPP_INFO_THROTTLE(
             node().get_logger(),
             *node().get_clock(),
             1000,
-            "updateSetpoint running"
+            "vx=%.2f vy=%.2f vz=%.2f yaw_rate=%.2f",
+            velocity_sp.x(),
+            velocity_sp.y(),
+            velocity_sp.z(),
+            yaw_rate
         );
-
-        const Eigen::Vector3f velocity_sp{
-            0.0f,
-            0.0f,
-            -1.0f
-        };
 
         _trajectory_setpoint->update(
             velocity_sp,
             std::nullopt,
             std::nullopt,
-            std::nullopt
+            yaw_rate
         );
     }
 
     private:
-    std::shared_ptr<px4_ros2::TrajectorySetpointType>
-        _trajectory_setpoint;
+    std::shared_ptr<px4_ros2::TrajectorySetpointType> _trajectory_setpoint;
+    
+    geometry_msgs::msg::Twist _last_cmd_vel;
+    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr _cmd_vel_sub;
 };

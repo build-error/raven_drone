@@ -8,7 +8,7 @@
 
   <description>PX4 ROS2 Teleop Mode</description>
 
-  <maintainer email="your_email@example.com">Aryan</maintainer>
+  <maintainer email="aryan7109singh@gmail.com">Aryan</maintainer>
 
   <license>BSD-3-Clause</license>
 
@@ -23,6 +23,7 @@
   <build_export_depend>eigen</build_export_depend>
 
   <depend>px4_ros2_cpp</depend>
+  <depend>geometry_msgs</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
