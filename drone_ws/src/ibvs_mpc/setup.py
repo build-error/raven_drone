@@ -26,6 +26,7 @@ setup(
     entry_points={
         'console_scripts': [
             'aruco_detector = ibvs_mpc.aruco_detector:main',
+            'ibvs_controller = ibvs_mpc.ibvs_controller:main',
         ],
     },
 )
