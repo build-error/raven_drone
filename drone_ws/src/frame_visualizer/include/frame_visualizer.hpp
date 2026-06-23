@@ -7,6 +7,7 @@
 #include <px4_msgs/msg/vehicle_attitude.hpp>
 
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2/LinearMath/Quaternion.h>
 #include <nav_msgs/msg/path.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -66,7 +67,7 @@ public:
 
 private:
     void localPositionCallback(
-        const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg)
+    const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg)
     {
         geometry_msgs::msg::PoseStamped pose;
 
@@ -84,22 +85,50 @@ private:
 
         _path_pub->publish(_path);
 
-        geometry_msgs::msg::TransformStamped tf;
+        // map -> base_link
 
-        tf.header.stamp = now();
-        tf.header.frame_id = "map";
-        tf.child_frame_id = "base_link";
+        geometry_msgs::msg::TransformStamped base_tf;
 
-        tf.transform.translation.x = msg->x;
-        tf.transform.translation.y = msg->y;
-        tf.transform.translation.z = msg->z;
+        base_tf.header.stamp = now();
+        base_tf.header.frame_id = "map";
+        base_tf.child_frame_id = "base_link";
 
-        tf.transform.rotation.w = _attitude.q[0];
-        tf.transform.rotation.x = _attitude.q[1];
-        tf.transform.rotation.y = _attitude.q[2];
-        tf.transform.rotation.z = _attitude.q[3];
+        base_tf.transform.translation.x = msg->x;
+        base_tf.transform.translation.y = msg->y;
+        base_tf.transform.translation.z = msg->z;
 
-        _tf_broadcaster->sendTransform(tf);
+        base_tf.transform.rotation.w = _attitude.q[0];
+        base_tf.transform.rotation.x = _attitude.q[1];
+        base_tf.transform.rotation.y = _attitude.q[2];
+        base_tf.transform.rotation.z = _attitude.q[3];
+
+        _tf_broadcaster->sendTransform(base_tf);
+
+        // base_link -> camera_link
+
+        geometry_msgs::msg::TransformStamped camera_tf;
+
+        camera_tf.header.stamp = now();
+        camera_tf.header.frame_id = "base_link";
+        camera_tf.child_frame_id = "camera_link";
+
+        camera_tf.transform.translation.x = 0.0;
+        camera_tf.transform.translation.y = 0.0;
+        camera_tf.transform.translation.z = 0.10;
+
+        tf2::Quaternion q;
+        q.setRPY(
+            0.0,
+            1.5707,
+            0.0
+        );
+
+        camera_tf.transform.rotation.x = q.x();
+        camera_tf.transform.rotation.y = q.y();
+        camera_tf.transform.rotation.z = q.z();
+        camera_tf.transform.rotation.w = q.w();
+
+        _tf_broadcaster->sendTransform(camera_tf);
     }
 
     nav_msgs::msg::Path _path;
