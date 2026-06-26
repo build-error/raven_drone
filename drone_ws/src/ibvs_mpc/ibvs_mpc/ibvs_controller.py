@@ -6,7 +6,7 @@ import numpy as np
 import rclpy
 
 from rclpy.node import Node
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import qos_profile_sensor_data, QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
 from cv_bridge import CvBridge
 
@@ -23,9 +23,8 @@ CAMERA_INFO_TOPIC = "/aruco/camera_info"
 
 MARKER_SIZE_M = 0.5
 
-Z_DES = 2.0
-
-LAMBDA = 0.5
+Z_DES = 0.5
+LAMBDA = 0.4
 
 
 class IBVSController(Node):
@@ -41,11 +40,17 @@ class IBVSController(Node):
         self.camera_matrix = None
         self.dist_coeffs = None
 
+        qos = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=1
+        )
+
         self.image_sub = self.create_subscription(
             Image,
             IMAGE_TOPIC,
             self.image_callback,
-            qos_profile_sensor_data
+            qos
         )
 
         self.camera_info_sub = self.create_subscription(
@@ -66,6 +71,21 @@ class IBVSController(Node):
             "/ibvs/image",
             10
         )
+
+        #
+        # Fixed camera extrinsics 
+        #
+        self.R_body_optical = np.array([
+            [0.0, -1.0, 0.0],
+            [1.0,  0.0, 0.0],
+            [0.0,  0.0, 1.0]
+        ])
+
+        self.p_body_camera = np.array([
+            0.0,
+            0.0,
+            -0.10
+        ])
 
         self.get_logger().info(
             "IBVS Controller Started"
@@ -102,7 +122,10 @@ class IBVSController(Node):
             cmd.vx = 0.0
             cmd.vy = 0.0
             cmd.vz = 0.0
-            cmd.yaw_rate = 0.0
+
+            cmd.wx = 0.0
+            cmd.wy = 0.0
+            cmd.wz = 0.0
 
             cmd.target_visible = False
 
@@ -286,6 +309,8 @@ class IBVSController(Node):
 
         e = s - s_star
 
+        print("error norm =", np.linalg.norm(e))
+
         L = np.vstack(
             L_rows
         )
@@ -296,19 +321,65 @@ class IBVSController(Node):
             @ e
         )
 
-        vx = float(v_cam[0])
-        vy = float(v_cam[1])
-        vz = float(v_cam[2])
+        vx_cam = float(v_cam[0])
+        vy_cam = float(v_cam[1])
+        vz_cam = float(v_cam[2])
 
-        yaw_rate = float(v_cam[5])
+        wx_cam = float(v_cam[3])
+        wy_cam = float(v_cam[4])
+        wz_cam = float(v_cam[5])
+
+        # Camera optical velocity
+
+        v_cam_vec = np.array([
+            vx_cam,
+            vy_cam,
+            vz_cam
+        ])
+
+        w_cam_vec = np.array([
+            wx_cam,
+            wy_cam,
+            wz_cam
+        ])
+
+        #
+        # Optical -> Body 
+        #
+
+        #
+        # Transform angular velocity
+        #
+
+        w_body = self.R_body_optical @ w_cam_vec
+
+        #
+        # Transform linear velocity
+        #
+
+        v_body = (
+            self.R_body_optical @ v_cam_vec
+            +
+            np.cross(
+                self.p_body_camera,
+                w_body
+            )
+        )
+
+        print("\n----------------")
+        print("v_cam =", v_cam_vec)
+        print("v_body =", v_body)
+        print("----------------")
 
         cmd = IBVSVelocity()
 
-        cmd.vx = vx
-        cmd.vy = vy
-        cmd.vz = vz
+        cmd.vx = float(v_body[0])
+        cmd.vy = float(v_body[1])
+        cmd.vz = float(v_body[2])
 
-        cmd.yaw_rate = yaw_rate
+        cmd.wx = float(w_body[0])
+        cmd.wy = float(w_body[1])
+        cmd.wz = float(w_body[2])
 
         cmd.target_visible = True
 
@@ -329,10 +400,12 @@ class IBVSController(Node):
         
         self.get_logger().info(
             f"Z={Z:.2f} "
-            f"vx={vx:.3f} "
-            f"vy={vy:.3f} "
-            f"vz={vz:.3f} "
-            f"yaw={yaw_rate:.3f}"
+            f"vx={v_body[0]:.3f} "
+            f"vy={v_body[1]:.3f} "
+            f"vz={v_body[2]:.3f} "
+            f"wx={w_body[0]:.3f} "
+            f"wy={w_body[1]:.3f} "
+            f"wz={w_body[2]:.3f}"
         )
 
 

@@ -27,6 +27,7 @@ setup(
         'console_scripts': [
             'aruco_detector = ibvs_mpc.aruco_detector:main',
             'ibvs_controller = ibvs_mpc.ibvs_controller:main',
+            'gz_tf_broadcaster = ibvs_mpc.gz_tf_broadcaster:main',
         ],
     },
 )

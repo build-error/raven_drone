@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
-project(frame_visualizer)
+
+project(ibvs_mode)
 
 if(NOT CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 17)
@@ -17,61 +18,41 @@ endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(PkgConfig REQUIRED)
+find_package(ament_cmake REQUIRED)
+
+find_package(rclcpp REQUIRED)
+
+find_package(ibvs_interfaces REQUIRED)
 
 find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
 
-find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(px4_msgs REQUIRED)
-
-find_package(nav_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(tf2_ros REQUIRED)
-
-pkg_check_modules(
-    GZ_TRANSPORT
-    REQUIRED
-    gz-transport13
-)
-
-pkg_check_modules(
-    GZ_MSGS
-    REQUIRED
-    gz-msgs10
-)
+find_package(px4_ros2_cpp REQUIRED)
 
 include_directories(
     include
     ${Eigen3_INCLUDE_DIRS}
-    ${GZ_TRANSPORT_INCLUDE_DIRS}
-    ${GZ_MSGS_INCLUDE_DIRS}
 )
 
 add_executable(
-    frame_visualizer
+    ibvs_mode
     src/main.cpp
 )
 
-target_link_libraries(
-    frame_visualizer
-    Eigen3::Eigen
-    ${GZ_TRANSPORT_LIBRARIES}
-    ${GZ_MSGS_LIBRARIES}
+ament_target_dependencies(
+    ibvs_mode
+    rclcpp
+    ibvs_interfaces
 )
 
-ament_target_dependencies(
-    frame_visualizer
-    rclcpp
-    px4_msgs
-    nav_msgs
-    geometry_msgs
-    tf2_ros
+target_link_libraries(
+    ibvs_mode
+    Eigen3::Eigen
+    px4_ros2_cpp::px4_ros2_cpp
 )
 
 install(
-    TARGETS frame_visualizer
+    TARGETS ibvs_mode
     DESTINATION lib/${PROJECT_NAME}
 )
 
