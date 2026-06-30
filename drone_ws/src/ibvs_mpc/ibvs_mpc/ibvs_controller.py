@@ -24,7 +24,7 @@ CAMERA_INFO_TOPIC = "/aruco/camera_info"
 MARKER_SIZE_M = 0.5
 
 Z_DES = 0.5
-LAMBDA = 0.4
+LAMBDA = 0.2
 
 
 class IBVSController(Node):

@@ -1,0 +1,63 @@
+session_name: ibvs_demo
+
+start_directory: ../../../
+
+windows:
+
+  - window_name: Simulation
+    layout: tiled
+
+    panes:
+
+      # PX4 + Gazebo
+      - shell_command:
+          - cmd: echo "===== PX4 + Gazebo ====="
+          - cmd: cd ../PX4-Autopilot
+          - cmd: PX4_GZ_WORLD=aruco make px4_sitl gz_x500_mono_cam_down
+
+      # Micro XRCE Agent
+      - shell_command:
+          - cmd: source install/setup.zsh
+          - cmd: echo "===== Micro XRCE Agent ====="
+          - cmd: MicroXRCEAgent udp4 -p 8888
+
+      # Bridges
+      - shell_command:
+          - cmd: source install/setup.zsh
+          - cmd: echo "===== Bridges ====="
+          - cmd: ros2 launch ibvs_demo bridges.launch.py
+
+      # Spare Terminal
+      - shell_command:
+          - cmd: cd src/ibvs_demo/scripts
+          - cmd: echo "==== Run ./stop_demo.sh to stop the demo ===="
+
+  - window_name: IBVS
+    layout: tiled
+
+    panes:
+
+      # Vision
+      - shell_command:
+          - cmd: source install/setup.zsh
+          - cmd: echo "===== Vision ====="
+          - cmd: ros2 launch ibvs_demo vision.launch.py
+
+      # Visualization
+      - shell_command:
+          - cmd: source install/setup.zsh
+          - cmd: echo "===== Visualization ====="
+          - cmd: ros2 launch ibvs_demo visualization.launch.py
+
+      # PX4 IBVS Mode
+      - shell_command:
+          - cmd: source install/setup.zsh
+          - cmd: echo "===== PX4 IBVS Mode ====="
+          - cmd: sleep 3
+          - cmd: ros2 run ibvs_mode ibvs_mode
+
+      # rqt_image_view
+      - shell_command:
+          - cmd: source install/setup.zsh
+          - cmd: echo "===== rqt_image_view ====="
+          - cmd: rqt_image_view
