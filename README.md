@@ -26,16 +26,20 @@ The project serves as a testbed for developing custom PX4 flight modes, velocity
 * Body-Frame Velocity Control
 * Body-to-NED Velocity Transformation
 * Autonomous Square Trajectory Tracking
+* ArUco Marker Detection
+* Image-Based Visual Servoing (IBVS)
+* PnP-Based Relative Pose Estimation
+* Velocity-Based Visual Servo Controller
 * RViz-Based Visualization Tools
 * PX4 ROS 2 Interface Library Integration
 * PX4 SITL Simulation Support
 
 ## Future Goals
 
-* ArUco-Based Target Tracking
-* Image-Based Visual Servoing (IBVS)
 * Visual Target Following
-* Autonomous Landing
+* Autonomous Precision Landing
+* Dyanmic marker  Visual Servoing
+* Robust IBVS under Occlusions
 * Real-World Deployment on Holybro X650
 
 ## Repository Structure
@@ -107,6 +111,54 @@ Features:
 * Vehicle attitude visualization
 * TF broadcasting for RViz
 
+---
+
+## Image-Based Visual Servoing (IBVS) Demo
+
+The repository includes a complete Image-Based Visual Servoing (IBVS) demonstration built on top of the PX4 ROS 2 Interface Library.
+
+The demo integrates:
+
+* ArUco marker detection
+* Perspective-n-Point (PnP) pose estimation
+* Image feature extraction
+* Image-space error computation
+* IBVS velocity controller
+* Optical-to-body velocity transformation
+* Body-to-NED velocity transformation
+* Custom PX4 external flight mode
+* Real-time visualization
+
+### Running the Demo
+
+1. Launch **QGroundControl** and wait for it to connect to the PX4 SITL instance.
+
+2. Start the complete IBVS demonstration environment:
+
+```bash
+cd drone_ws/src/ibvs_demo/scripts
+
+./start_demo.sh
+```
+
+The launcher automatically creates a tmux session and starts all required components, including:
+
+* PX4 SITL with Gazebo
+* Micro XRCE-DDS Agent
+* ROS 2 bridge nodes
+* IBVS perception pipeline
+* Custom PX4 IBVS flight mode
+* Image visualization tools
+
+3. Once the simulation is fully initialized:
+   * Arm the vehicle.
+   * Take off manually.
+   * Fly the drone to an arbitrary position away from the ArUco marker while ensuring that the marker remains visible in the onboard camera.
+
+4. Switch the vehicle to **IBVS Mode** using QGroundControl.
+
+The IBVS controller will autonomously compute body-frame velocity commands from the observed image feature errors and guide the drone toward the desired pose relative to the ArUco marker.
+
 ### px4_msgs
 
 ROS 2 message definitions generated from PX4 uORB messages.
@@ -118,6 +170,29 @@ PX4 ROS 2 Interface Library used for creating custom flight modes, setpoint type
 ## Coordinate Frames
 
 This project primarily uses PX4-native coordinate frames to maintain consistency with PX4's internal control architecture and avoid unnecessary frame conversions.
+
+## Image-Based Visual Servoing Pipeline
+
+The IBVS implementation performs visual servoing directly in image space using feature point errors extracted from an ArUco marker.
+
+```mermaid
+flowchart TD
+    A[Camera Image]
+    B[ArUco Detection]
+    C[Marker Corner Extraction]
+    D[Perspective-n-Point (PnP)]
+    E[Relative Pose Estimation]
+    F[Desired Image Features]
+    G[Interaction Matrix]
+    H[IBVS Velocity Controller]
+    I[Optical → Body Velocity]
+    J[Body → NED Velocity]
+    K[PX4 Trajectory Setpoint]
+
+    A --> B --> C --> D --> E --> F --> G --> H --> I --> J --> K
+```
+
+The controller computes velocity commands directly from image feature errors rather than estimating the full vehicle pose in the world frame. The resulting body-frame velocity commands are transformed into the PX4 NED frame before being sent to the PX4 flight controller through a custom external flight mode.
 
 ### NED Frame (World Frame)
 
@@ -546,6 +621,52 @@ File
 ```
 
 Select the project RViz configuration file.
+
+---
+
+## Image-Based Visual Servoing (IBVS) Demo
+
+The repository includes a complete Image-Based Visual Servoing (IBVS) demonstration built on top of the PX4 ROS 2 Interface Library.
+
+The demo integrates:
+
+* ArUco marker detection
+* Perspective-n-Point (PnP) pose estimation
+* Image feature extraction
+* Image-space error computation
+* IBVS velocity controller
+* Optical-to-body velocity transformation
+* Body-to-NED velocity transformation
+* Custom PX4 external flight mode
+* Real-time visualization
+
+### Running the Demo
+
+The complete demonstration environment can be launched using the provided startup script:
+
+```bash
+cd drone_ws/src/ibvs_demo/scripts
+
+./start_demo.sh
+```
+
+The launcher automatically creates a tmux session and starts all required components, including:
+
+* PX4 SITL with Gazebo
+* Micro XRCE-DDS Agent
+* ROS 2 bridge nodes
+* IBVS perception pipeline
+* Custom PX4 IBVS flight mode
+* Image visualization tools
+
+Once the demo has started:
+
+1. Launch QGroundControl.
+2. Arm the vehicle.
+3. Take off.
+4. Switch to **IBVS Mode**.
+
+The drone will autonomously compute velocity commands from image feature errors and navigate toward the visual target using an Image-Based Visual Servoing controller.
 
 #### Current Visualizations
 

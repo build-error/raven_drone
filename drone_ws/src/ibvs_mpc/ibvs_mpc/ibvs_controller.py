@@ -21,9 +21,9 @@ from ibvs_mpc.aruco_detector import ArucoDetector
 IMAGE_TOPIC = "/aruco/image"
 CAMERA_INFO_TOPIC = "/aruco/camera_info"
 
-MARKER_SIZE_M = 0.5
+MARKER_SIZE_M = 1.0
 
-Z_DES = 0.5
+Z_DES = 1.0
 LAMBDA = 0.2
 
 
@@ -182,7 +182,8 @@ class IBVSController(Node):
             rvec_des,
             tvec_des,
             self.camera_matrix,
-            self.dist_coeffs
+            self.dist_coeffs,
+            flags=cv2.SOLVEPNP_IPPE_SQUARE
         )
 
         desired_points = desired_points.reshape(

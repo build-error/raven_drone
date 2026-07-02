@@ -57,7 +57,7 @@ windows:
           - cmd: ros2 run ibvs_mode ibvs_mode
 
       # rqt_image_view
-      - shell_command:
-          - cmd: source install/setup.zsh
-          - cmd: echo "===== rqt_image_view ====="
-          - cmd: rqt_image_view
+    #   - shell_command:
+    #       - cmd: source install/setup.zsh
+    #       - cmd: echo "===== rqt_image_view ====="
+    #       - cmd: rqt_image_view
