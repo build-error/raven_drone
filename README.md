@@ -111,53 +111,25 @@ Features:
 * Vehicle attitude visualization
 * TF broadcasting for RViz
 
----
+### ibvs_mode
 
-## Image-Based Visual Servoing (IBVS) Demo
+[PX4 ROS2 Image-Based Visual Servoing Demo 1](https://youtu.be/KhoX0NL8Auk)
 
-The repository includes a complete Image-Based Visual Servoing (IBVS) demonstration built on top of the PX4 ROS 2 Interface Library.
+[PX4 ROS2 Image-Based Visual Servoing Demo 2](https://youtu.be/ifOGpzNN2z0)
 
-The demo integrates:
+A custom PX4 external flight mode implementing Image-Based Visual Servoing (IBVS) for autonomous visual target tracking using an ArUco marker.
+
+Features:
 
 * ArUco marker detection
 * Perspective-n-Point (PnP) pose estimation
 * Image feature extraction
 * Image-space error computation
-* IBVS velocity controller
-* Optical-to-body velocity transformation
+* Interaction matrix based IBVS controller
+* Optical-frame to body-frame velocity transformation
 * Body-to-NED velocity transformation
-* Custom PX4 external flight mode
-* Real-time visualization
-
-### Running the Demo
-
-1. Launch **QGroundControl** and wait for it to connect to the PX4 SITL instance.
-
-2. Start the complete IBVS demonstration environment:
-
-```bash
-cd drone_ws/src/ibvs_demo/scripts
-
-./start_demo.sh
-```
-
-The launcher automatically creates a tmux session and starts all required components, including:
-
-* PX4 SITL with Gazebo
-* Micro XRCE-DDS Agent
-* ROS 2 bridge nodes
-* IBVS perception pipeline
-* Custom PX4 IBVS flight mode
-* Image visualization tools
-
-3. Once the simulation is fully initialized:
-   * Arm the vehicle.
-   * Take off manually.
-   * Fly the drone to an arbitrary position away from the ArUco marker while ensuring that the marker remains visible in the onboard camera.
-
-4. Switch the vehicle to **IBVS Mode** using QGroundControl.
-
-The IBVS controller will autonomously compute body-frame velocity commands from the observed image feature errors and guide the drone toward the desired pose relative to the ArUco marker.
+* PX4 custom flight mode integration
+* Real-time annotated image visualization
 
 ### px4_msgs
 
@@ -171,28 +143,40 @@ PX4 ROS 2 Interface Library used for creating custom flight modes, setpoint type
 
 This project primarily uses PX4-native coordinate frames to maintain consistency with PX4's internal control architecture and avoid unnecessary frame conversions.
 
-## Image-Based Visual Servoing Pipeline
+## Image-Based Visual Servoing (IBVS) Pipeline
 
-The IBVS implementation performs visual servoing directly in image space using feature point errors extracted from an ArUco marker.
+The IBVS implementation performs visual servoing directly in image space using feature point errors extracted from an ArUco marker. The detected marker corners are used to estimate the relative pose through Perspective-n-Point (PnP), from which the marker depth is obtained for computing the interaction matrix.
 
 ```mermaid
 flowchart TD
-    A[Camera Image]
-    B[ArUco Detection]
-    C[Marker Corner Extraction]
-    D[Perspective-n-Point (PnP)]
-    E[Relative Pose Estimation]
-    F[Desired Image Features]
-    G[Interaction Matrix]
-    H[IBVS Velocity Controller]
-    I[Optical → Body Velocity]
-    J[Body → NED Velocity]
-    K[PX4 Trajectory Setpoint]
+    A["Camera Image"]
+    B["ArUco Marker Detection"]
+    C["Marker Corner Extraction"]
+    D["Perspective-n-Point (PnP) Pose Estimation"]
+    E["Depth Estimation"]
+    F["Desired Image Feature Generation"]
+    G["Image Feature Error Computation"]
+    H["Interaction Matrix"]
+    I["IBVS Velocity Controller"]
+    J["Optical Frame → Body Frame"]
+    K["Body Frame → NED Frame"]
+    L["PX4 Trajectory Setpoint"]
 
-    A --> B --> C --> D --> E --> F --> G --> H --> I --> J --> K
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    C --> G
+    E --> H
+    F --> G
+    G --> H
+    H --> I
+    I --> J
+    J --> K
+    K --> L
 ```
 
-The controller computes velocity commands directly from image feature errors rather than estimating the full vehicle pose in the world frame. The resulting body-frame velocity commands are transformed into the PX4 NED frame before being sent to the PX4 flight controller through a custom external flight mode.
+The controller computes velocity commands directly from image feature errors rather than relying on global position estimates. The estimated marker depth obtained from the PnP solution is used to construct the interaction matrix, after which the commanded camera-frame velocity is transformed into the vehicle body frame and subsequently into the PX4 NED frame before being published as a trajectory setpoint through the custom PX4 external flight mode.
 
 ### NED Frame (World Frame)
 
